@@ -8,11 +8,15 @@ context instead of just a raw snapshot.
 
 ## Stack
 
-Next.js (App Router, TypeScript) + Supabase (Postgres) + Vercel Cron, built
-as an installable PWA. See `src/lib/domain/` for the core business logic
-(capacity status, wait-time labelling, busier/quieter baseline, triage
-severity) — all unit tested — and `src/lib/poller/ingest.ts` for the polling
-pipeline.
+Next.js (App Router, TypeScript) + Supabase (Postgres), built as an
+installable PWA. The poller is triggered on a schedule by a GitHub Actions
+workflow rather than Vercel Cron — Vercel's free Hobby plan only allows
+daily cron jobs, too infrequent for meaningful trend data, so
+`.github/workflows/poll.yml` pings the same `/api/cron/poll` endpoint every
+30 minutes for free instead. See `src/lib/domain/` for the core business
+logic (capacity status, wait-time labelling, busier/quieter baseline,
+triage severity) — all unit tested — and `src/lib/poller/ingest.ts` for the
+polling pipeline itself.
 
 ## Local development
 
@@ -46,14 +50,26 @@ you without your account.
 ## One-time setup: deploying to Vercel
 
 1. Import the repo into Vercel.
-2. Add the same `SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` env vars in the
-   Vercel project settings, plus a random `CRON_SECRET` value.
-3. `vercel.json` already schedules `/api/cron/poll` every 30 minutes —
-   Vercel Cron sends that same `CRON_SECRET` automatically as a bearer
-   token, which the route checks.
-4. First deploy will start polling on its own schedule. You can also trigger
-   a poll manually by visiting `/api/cron/poll` (with the `Authorization:
-   Bearer <CRON_SECRET>` header if you set one).
+2. Add these env vars in the Vercel project settings (Production + Preview
+   is enough; Development only matters if you use `vercel dev`/`vercel env
+   pull`, which this project doesn't rely on):
+   - `SUPABASE_URL`
+   - `SUPABASE_SERVICE_ROLE_KEY`
+   - `CRON_SECRET` — any random string you make up
+3. Deploy. Skip the optional Supabase marketplace integration Vercel offers
+   during setup — it injects its own differently-named env vars, which
+   would just be redundant with the ones above.
+
+## One-time setup: scheduling the poll (GitHub Actions)
+
+1. In the GitHub repo → Settings → Secrets and variables → Actions:
+   - Add secret `CRON_SECRET` — the same value you put in Vercel.
+   - Add variable `VERCEL_APP_URL` — your deployment's base URL, e.g.
+     `https://sa-ed-dashboard.vercel.app` (no trailing slash).
+2. `.github/workflows/poll.yml` runs every 30 minutes automatically once
+   pushed to the repo's default branch. You can also trigger it manually
+   from the Actions tab (`workflow_dispatch`) to test it immediately rather
+   than waiting for the schedule.
 
 ## What's implemented (phase 1 / ED MVP)
 

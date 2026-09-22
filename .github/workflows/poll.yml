@@ -1,0 +1,20 @@
+name: Poll SA Health ED dashboard
+
+# Vercel's free Hobby plan only allows daily cron jobs, which isn't
+# frequent enough to build meaningful trend/baseline data (the point of
+# this project). GitHub Actions' free tier has no such restriction, so it
+# triggers the same /api/cron/poll endpoint instead - no code change,
+# just a different scheduler.
+on:
+  schedule:
+    - cron: "*/30 * * * *"
+  workflow_dispatch: {}
+
+jobs:
+  poll:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger poll endpoint
+        run: |
+          curl -sf -X GET "${{ vars.VERCEL_APP_URL }}/api/cron/poll" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
