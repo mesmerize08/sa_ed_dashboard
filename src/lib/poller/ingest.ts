@@ -116,8 +116,22 @@ export async function runIngest(source: SaHealthSource, store: IngestStore): Pro
     await store.logPoll("ingested", `captured_at=${capturedAt} hospitals=${snapshotRows.length}`);
     return { status: "ingested" };
   } catch (err) {
-    const detail = err instanceof Error ? err.message : String(err);
+    const detail = errorMessage(err);
     await store.logPoll("error", detail);
     return { status: "error", detail };
   }
+}
+
+/**
+ * Supabase's errors (PostgrestError, AuthError, etc.) are plain objects with
+ * a `message` field, not `Error` instances — `String(err)` on those collapses
+ * to the useless "[object Object]", which is exactly the failure mode this
+ * function exists to avoid.
+ */
+function errorMessage(err: unknown): string {
+  if (err instanceof Error) return err.message;
+  if (typeof err === "object" && err !== null && "message" in err && typeof err.message === "string") {
+    return err.message;
+  }
+  return String(err);
 }

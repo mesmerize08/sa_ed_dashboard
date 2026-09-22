@@ -82,4 +82,14 @@ describe("mapEd006", () => {
       },
     ]);
   });
+
+  test("drops rows with CAT -99 (the source's sentinel for unclassified/missing triage category)", () => {
+    // Confirmed against live data: several country hospitals report this
+    // instead of omitting the row. -99 isn't a real triage category and
+    // would otherwise violate the ed_triage_snapshots CHECK constraint.
+    const raw = [
+      { HOSP_SHORT: "Gawler Health Service", CAT: "-99", WTS: "1", WOT: "0", ALERT: "1", OTH: "0", TOT: "1" },
+    ];
+    expect(mapEd006(raw)).toEqual([]);
+  });
 });

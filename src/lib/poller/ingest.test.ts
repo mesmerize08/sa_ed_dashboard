@@ -83,6 +83,18 @@ describe("runIngest", () => {
     expect(store.insertEdSnapshots).toHaveBeenCalledWith([expect.objectContaining({ hospital_id: 99 })]);
   });
 
+  test("extracts a usable message from non-Error rejections (e.g. Supabase's plain-object errors)", async () => {
+    const source = makeSource();
+    const store = makeStore({
+      insertEdSnapshots: vi.fn().mockRejectedValue({ message: "relation \"ed_snapshots\" does not exist", code: "42P01" }),
+    });
+
+    const result = await runIngest(source, store);
+
+    expect(result).toMatchObject({ status: "error", detail: 'relation "ed_snapshots" does not exist' });
+    expect(store.logPoll).toHaveBeenCalledWith("error", 'relation "ed_snapshots" does not exist');
+  });
+
   test("logs an error and resolves without throwing when the source fetch fails", async () => {
     const source = makeSource({
       fetchEtlCntrl: vi.fn().mockRejectedValue(new Error("network down")),

@@ -71,5 +71,10 @@ export function mapEd006(raw: unknown): Ed006Record[] {
       alertRaw: requireNumber(row.ALERT, "ALERT"),
       other: requireNumber(row.OTH, "OTH"),
       total: requireNumber(row.TOT, "TOT"),
-    }));
+    }))
+    // Confirmed against live data: some country hospitals report CAT -99 as
+    // a sentinel for unclassified/missing triage category rather than
+    // omitting the row. Not a real triage category (1-5), so it's dropped
+    // here rather than stored.
+    .filter((record) => record.triageCategory >= 1 && record.triageCategory <= 5);
 }
